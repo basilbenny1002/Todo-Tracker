@@ -12,7 +12,9 @@ const ICONS = {
     pause: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>`,
     check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
     trash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`,
-    plus: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`
+    plus: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
+    stop: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect></svg>`,
+    cross: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`
 };
 
 // Initialization
@@ -22,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function loadData() {
-    const stored = localStorage.getItem('glassTodoData_v2');
+    const stored = localStorage.getItem('glassTodoData_v3');
     if (stored) {
         const parsed = JSON.parse(stored);
         // Day Rollover Check
@@ -33,18 +35,12 @@ function loadData() {
         }
     } else {
         // Default State
-        appData.projects = [
-            {
-                id: Date.now(),
-                title: "",
-                tasks: []
-            }
-        ];
+        appData.projects = [];
     }
 }
 
 function saveData() {
-    localStorage.setItem('glassTodoData_v2', JSON.stringify(appData));
+    localStorage.setItem('glassTodoData_v3', JSON.stringify(appData));
 }
 
 function handleRollover(oldData) {
@@ -52,7 +48,7 @@ function handleRollover(oldData) {
     const overdueProjects = [];
 
     oldData.projects.forEach(p => {
-        const pending = p.tasks.filter(t => t.status !== 'done');
+        const pending = p.tasks.filter(t => t.status !== 'done' && t.status !== 'cancelled');
         if (pending.length > 0) {
             // Mark overdue
             pending.forEach(t => t.status = 'overdue');
@@ -66,7 +62,7 @@ function handleRollover(oldData) {
 
     appData = {
         date: today,
-        projects: overdueProjects.length > 0 ? overdueProjects : [{ id: Date.now(), title: "", tasks: [] }]
+        projects: overdueProjects.length > 0 ? overdueProjects : []
     };
     
     if (overdueProjects.length > 0) {
@@ -81,13 +77,18 @@ function render() {
     container.innerHTML = '';
 
     document.getElementById('current-date').innerText = appData.date;
+    
+    if (appData.projects.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding:40px; color:#999;">No tasks yet. Click "+ Add Task / Project" to get started.</div>`;
+        // Don't return here, we still need to render the rest of the UI if needed
+    }
 
     appData.projects.forEach((project, pIndex) => {
         const panel = document.createElement('div');
         panel.className = 'glass-panel';
         
         // Calculate Progress
-        const total = project.tasks.length;
+        const total = project.tasks.filter(t => t.status !== 'cancelled').length;
         const done = project.tasks.filter(t => t.status === 'done').length;
         const percent = total === 0 ? 0 : Math.round((done / total) * 100);
 
@@ -96,7 +97,7 @@ function render() {
         header.className = 'main-heading-header';
         header.innerHTML = `
             <input type="text" class="main-heading-input" 
-                placeholder="Enter Main Heading..." 
+                placeholder="Project Name" 
                 value="${project.title}" 
                 onchange="updateProjectTitle(${pIndex}, this.value)">
             <div class="progress-ring">${percent}%</div>
@@ -111,13 +112,16 @@ function render() {
             const isRunning = !!timers[task.id];
             const statusClass = task.status === 'done' ? 'green' : 
                               (task.status === 'in-progress' || isRunning) ? 'yellow' : 
-                              task.status === 'overdue' ? 'red' : '';
+                              task.status === 'overdue' ? 'red' : 
+                              task.status === 'cancelled' ? 'grey' : '';
 
             const item = document.createElement('div');
             item.className = 'task-item';
+            if (task.status === 'cancelled') item.style.opacity = '0.5';
+
             item.innerHTML = `
                 <div class="status-indicator ${statusClass}" onclick="toggleTaskStatus(${pIndex}, ${tIndex})"></div>
-                <input type="text" class="task-input ${task.status === 'done' ? 'done' : ''}" 
+                <input type="text" class="task-input ${task.status === 'done' || task.status === 'cancelled' ? 'done' : ''}" 
                     placeholder="Sub task..." 
                     value="${task.title}" 
                     onchange="updateTaskTitle(${pIndex}, ${tIndex}, this.value)">
@@ -125,13 +129,15 @@ function render() {
                 <span class="timer-badge" id="timer-${task.id}">${formatTime(task.timeSpent)}</span>
                 
                 <div class="task-controls">
-                    ${task.status !== 'done' ? `
+                    ${task.status !== 'done' && task.status !== 'cancelled' ? `
                         ${isRunning ? 
-                            `<button class="btn" onclick="pauseTask(${pIndex}, ${tIndex})">${ICONS.pause}</button>` : 
-                            `<button class="btn" onclick="startTask(${pIndex}, ${tIndex})">${ICONS.play}</button>`
+                            `<button class="btn" title="Pause" onclick="pauseTask(${pIndex}, ${tIndex})">${ICONS.pause}</button>` : 
+                            `<button class="btn" title="Start" onclick="startTask(${pIndex}, ${tIndex})">${ICONS.play}</button>`
                         }
+                        <button class="btn" title="Mark Done" onclick="stopTask(${pIndex}, ${tIndex})">${ICONS.check}</button>
+                        <button class="btn" title="Mark Not Completed" onclick="cancelTask(${pIndex}, ${tIndex})">${ICONS.cross}</button>
                     ` : ''}
-                    <button class="btn" onclick="deleteTask(${pIndex}, ${tIndex})">${ICONS.trash}</button>
+                    <button class="btn" title="Delete" onclick="deleteTask(${pIndex}, ${tIndex})">${ICONS.trash}</button>
                 </div>
             `;
             taskList.appendChild(item);
@@ -142,7 +148,7 @@ function render() {
         addTaskBtn.style.marginTop = '15px';
         addTaskBtn.style.textAlign = 'center';
         addTaskBtn.innerHTML = `
-            <button class="btn" style="width:100%; border-radius: 12px; background: rgba(0,0,0,0.03);" onclick="addTask(${pIndex})">
+            <button class="btn" style="width:100%; border-radius: 12px; background: rgba(0,0,0,0.03);" onclick="showAddForm('${project.title.replace(/'/g, "\\'")}')">
                 ${ICONS.plus} <span style="margin-left:8px; font-size:0.9rem;">Add Sub Task</span>
             </button>
         `;
@@ -154,18 +160,144 @@ function render() {
     });
 }
 
-// Actions
-function addProject() {
-    appData.projects.push({
-        id: Date.now(),
-        title: "",
-        tasks: []
+// Inline Add Form Logic
+function showAddForm(prefillProject = '') {
+    const form = document.getElementById('add-form-container');
+    const btn = document.getElementById('btn-show-add');
+    const projectInput = document.getElementById('new-project-input');
+    const subtasksContainer = document.getElementById('new-subtasks-container');
+    const datalist = document.getElementById('project-suggestions');
+
+    // Populate suggestions
+    datalist.innerHTML = '';
+    const uniqueProjects = [...new Set(appData.projects.map(p => p.title).filter(t => t))];
+    uniqueProjects.forEach(title => {
+        const option = document.createElement('option');
+        option.value = title;
+        datalist.appendChild(option);
     });
+
+    // Reset form
+    projectInput.value = prefillProject;
+    subtasksContainer.innerHTML = '';
+    
+    // Add initial 2 subtask inputs
+    addSubTaskInput();
+    addSubTaskInput();
+
+    form.style.display = 'block';
+    btn.style.display = 'none';
+    
+    if (prefillProject) {
+        // Focus first subtask if project is prefilled
+        const firstInput = subtasksContainer.querySelector('input');
+        if(firstInput) firstInput.focus();
+    } else {
+        projectInput.focus();
+    }
+}
+
+function cancelAddEntry() {
+    document.getElementById('add-form-container').style.display = 'none';
+    document.getElementById('btn-show-add').style.display = 'block';
+}
+
+function addSubTaskInput() {
+    const container = document.getElementById('new-subtasks-container');
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'add-form-input';
+    input.style.marginBottom = '10px';
+    input.placeholder = 'Sub task...';
+    
+    // Auto-add next input when typing
+    input.addEventListener('input', function() {
+        // If this is the last input and it has text, add another one
+        if (this === container.lastElementChild && this.value.trim() !== '') {
+            addSubTaskInput();
+        }
+    });
+
+    // Handle Enter key to submit
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            // If empty and not the only one, maybe focus submit?
+            // For now just let them tab or click add
+            submitNewEntry();
+        }
+    });
+
+    container.appendChild(input);
+}
+
+function submitNewEntry() {
+    const projectInput = document.getElementById('new-project-input');
+    const subtasksContainer = document.getElementById('new-subtasks-container');
+    
+    const projectTitle = projectInput.value.trim() || "General Tasks";
+    const inputs = subtasksContainer.querySelectorAll('input');
+    const newTasks = [];
+
+    inputs.forEach(input => {
+        const val = input.value.trim();
+        if (val) {
+            newTasks.push({
+                id: Date.now() + Math.random(),
+                title: val,
+                status: 'pending',
+                timeSpent: 0
+            });
+        }
+    });
+
+    if (newTasks.length === 0 && !projectTitle) return;
+
+    // Find existing project or create new
+    let project = appData.projects.find(p => p.title.toLowerCase() === projectTitle.toLowerCase());
+    
+    if (!project) {
+        project = {
+            id: Date.now(),
+            title: projectTitle,
+            tasks: []
+        };
+        appData.projects.push(project);
+    }
+
+    // Add tasks
+    if (newTasks.length > 0) {
+        project.tasks.push(...newTasks);
+    } else if (project.tasks.length === 0) {
+        // Ensure at least one empty task if creating a new project with no tasks
+        project.tasks.push({
+            id: Date.now() + Math.random(),
+            title: "",
+            status: 'pending',
+            timeSpent: 0
+        });
+    }
+
     saveData();
     render();
+    
+    // Reset for next entry or close? User said "then give add another task option"
+    // Let's clear inputs but keep form open? Or close it?
+    // "which would brign the main heading sbd sub task thingy" -> implies resetting the form
+    
+    projectInput.value = '';
+    subtasksContainer.innerHTML = '';
+    addSubTaskInput();
+    addSubTaskInput();
+    projectInput.focus();
+    
+    // Or maybe close it? Usually "Add" closes. But user said "give add another task option".
+    // Let's keep it open but reset it, effectively allowing rapid entry.
+    // But we also need a way to close it. The "Cancel" button is there.
 }
 
 function updateProjectTitle(index, value) {
+
     appData.projects[index].title = value;
     saveData();
 }
@@ -178,17 +310,6 @@ function deleteProject(index) {
     }
 }
 
-function addTask(pIndex) {
-    appData.projects[pIndex].tasks.push({
-        id: Date.now() + Math.random(),
-        title: "",
-        status: 'pending',
-        timeSpent: 0
-    });
-    saveData();
-    render();
-}
-
 function updateTaskTitle(pIndex, tIndex, value) {
     appData.projects[pIndex].tasks[tIndex].title = value;
     saveData();
@@ -199,6 +320,10 @@ function deleteTask(pIndex, tIndex) {
     if (timers[task.id]) clearInterval(timers[task.id]);
     
     appData.projects[pIndex].tasks.splice(tIndex, 1);
+    
+    // Clean up empty projects if needed? User said "main heading can be left empty" so maybe keep it.
+    // But if it has 0 tasks, it might look weird. Let's keep it.
+    
     saveData();
     render();
 }
@@ -209,12 +334,8 @@ function toggleTaskStatus(pIndex, tIndex) {
     if (task.status === 'done') {
         task.status = 'pending';
     } else {
-        // Stop timer if running
-        if (timers[task.id]) {
-            clearInterval(timers[task.id]);
-            delete timers[task.id];
-        }
-        task.status = 'done';
+        stopTask(pIndex, tIndex); // Reuse stop logic
+        return;
     }
     saveData();
     render();
@@ -241,8 +362,6 @@ function startTask(pIndex, tIndex) {
         // Update DOM directly for performance
         const badge = document.getElementById(`timer-${task.id}`);
         if (badge) badge.innerText = formatTime(task.timeSpent);
-        
-        // Save occasionally? Let's save on pause/stop to avoid thrashing storage
     }, 1000);
 }
 
@@ -252,6 +371,28 @@ function pauseTask(pIndex, tIndex) {
         clearInterval(timers[task.id]);
         delete timers[task.id];
     }
+    saveData();
+    render();
+}
+
+function stopTask(pIndex, tIndex) {
+    const task = appData.projects[pIndex].tasks[tIndex];
+    if (timers[task.id]) {
+        clearInterval(timers[task.id]);
+        delete timers[task.id];
+    }
+    task.status = 'done';
+    saveData();
+    render();
+}
+
+function cancelTask(pIndex, tIndex) {
+    const task = appData.projects[pIndex].tasks[tIndex];
+    if (timers[task.id]) {
+        clearInterval(timers[task.id]);
+        delete timers[task.id];
+    }
+    task.status = 'cancelled';
     saveData();
     render();
 }
@@ -267,7 +408,6 @@ function formatTime(seconds) {
 // Report Logic
 function openReport() {
     const modal = document.getElementById('report-modal');
-    const preview = document.getElementById('report-preview-content');
     
     // Generate Report HTML
     let totalTasks = 0;
