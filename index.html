@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glass Todo</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- html2canvas for screenshot functionality -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+</head>
+<body>
+
+    <!-- Animated Background -->
+    <div class="background-mesh">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <div class="app-container">
+        <header>
+            <div>
+                <h1>My Day</h1>
+                <div class="date-badge" id="current-date">Loading...</div>
+            </div>
+            <button class="btn btn-primary" onclick="openReport()">
+                Daily Report
+            </button>
+        </header>
+
+        <div id="projects-container">
+            <!-- Projects will be injected here by JS -->
+        </div>
+
+        <button class="btn-add-main" onclick="addProject()">
+            + Add Main Heading
+        </button>
+    </div>
+
+    <!-- Report Modal -->
+    <div id="report-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 style="margin:0;">Daily Summary</h2>
+                <button class="btn" onclick="closeReport()">✕</button>
+            </div>
+
+            <!-- This div is what gets captured as an image -->
+            <div id="report-preview-content" class="report-preview">
+                <div class="report-header">
+                    <span style="font-weight:bold; font-size:1.2rem;">Daily Report</span>
+                    <span id="rep-date" style="color:#666;"></span>
+                </div>
+
+                <div class="report-stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-number" id="rep-total">0</span>
+                        <span class="stat-label">Total Tasks</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="rep-completed" style="color:var(--status-green)">0</span>
+                        <span class="stat-label">Completed</span>
+                    </div>
+                    <div class="stat-item" style="grid-column: span 2;">
+                        <span class="stat-number" id="rep-time">0m 0s</span>
+                        <span class="stat-label">Focus Time</span>
+                    </div>
+                </div>
+
+                <div id="rep-list">
+                    <!-- List content -->
+                </div>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button class="btn-primary" style="width:100%" onclick="copyReportImage()">Copy Image to Clipboard</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
