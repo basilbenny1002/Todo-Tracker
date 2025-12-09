@@ -304,6 +304,21 @@ h1 {
     box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
 }
 
+/* Specific styles for the Add Form hierarchy */
+#new-project-input {
+    font-size: 1.3rem;
+    font-weight: 700;
+    padding: 16px;
+    border-bottom: 2px solid #eee;
+    margin-bottom: 10px;
+}
+
+#new-subtasks-container {
+    margin-left: 25px;
+    padding-left: 15px;
+    border-left: 2px solid #f0f0f0;
+}
+
 .add-form-actions {
     display: flex;
     gap: 10px;

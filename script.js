@@ -253,22 +253,21 @@ function submitNewEntry() {
 
     if (newTasks.length === 0 && !projectTitle) return;
 
-    // Find existing project or create new
-    let project = appData.projects.find(p => p.title.toLowerCase() === projectTitle.toLowerCase());
-    
-    if (!project) {
-        project = {
-            id: Date.now(),
-            title: projectTitle,
-            tasks: []
-        };
-        appData.projects.push(project);
-    }
+    // Always create a new project block (User requested no merging)
+    // If title is empty, default to "General Tasks"
+    const finalTitle = projectTitle || "General Tasks";
+
+    const project = {
+        id: Date.now(),
+        title: finalTitle,
+        tasks: []
+    };
+    appData.projects.push(project);
 
     // Add tasks
     if (newTasks.length > 0) {
         project.tasks.push(...newTasks);
-    } else if (project.tasks.length === 0) {
+    } else {
         // Ensure at least one empty task if creating a new project with no tasks
         project.tasks.push({
             id: Date.now() + Math.random(),
@@ -281,19 +280,8 @@ function submitNewEntry() {
     saveData();
     render();
     
-    // Reset for next entry or close? User said "then give add another task option"
-    // Let's clear inputs but keep form open? Or close it?
-    // "which would brign the main heading sbd sub task thingy" -> implies resetting the form
-    
-    projectInput.value = '';
-    subtasksContainer.innerHTML = '';
-    addSubTaskInput();
-    addSubTaskInput();
-    projectInput.focus();
-    
-    // Or maybe close it? Usually "Add" closes. But user said "give add another task option".
-    // Let's keep it open but reset it, effectively allowing rapid entry.
-    // But we also need a way to close it. The "Cancel" button is there.
+    // Close the form and reset
+    cancelAddEntry();
 }
 
 function updateProjectTitle(index, value) {
