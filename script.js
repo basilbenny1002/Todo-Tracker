@@ -172,8 +172,9 @@ function showInlineAddTask(pIndex) {
     // Removed borderLeft as per user request
     tempRow.innerHTML = `
         <div class="status-indicator"></div>
-        <input type="text" class="task-input" placeholder="Type new task and press Enter..." id="inline-input-${pIndex}">
+        <input type="text" class="task-input" placeholder="Type new task..." id="inline-input-${pIndex}">
         <div class="task-controls">
+            <button class="btn" onclick="submitInlineTask(${pIndex}, this.closest('.task-item'))">${ICONS.check}</button>
             <button class="btn" onclick="this.closest('.task-item').remove()">${ICONS.cross}</button>
         </div>
     `;
@@ -184,25 +185,30 @@ function showInlineAddTask(pIndex) {
     
     input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
-            const val = input.value.trim();
-            if (val) {
-                appData.projects[pIndex].tasks.push({
-                    id: Date.now() + Math.random(),
-                    title: val,
-                    status: 'pending',
-                    timeSpent: 0
-                });
-                saveData();
-                render();
-                // Keep adding? User said "add to the list". 
-                // Usually inline add stays open or re-opens. 
-                // Let's re-open it for rapid entry.
-                setTimeout(() => showInlineAddTask(pIndex), 50);
-            }
+            submitInlineTask(pIndex, tempRow);
         }
     });
+}
+
+function submitInlineTask(pIndex, rowElement) {
+    const input = rowElement.querySelector('input');
+    const val = input.value.trim();
     
-    // Optional: Save on blur? Maybe not, might be annoying if just clicking away.
+    if (val) {
+        appData.projects[pIndex].tasks.push({
+            id: Date.now() + Math.random(),
+            title: val,
+            status: 'pending',
+            timeSpent: 0
+        });
+        saveData();
+        render();
+        // Re-open for rapid entry
+        setTimeout(() => showInlineAddTask(pIndex), 50);
+    } else {
+        // If empty, just remove the row
+        rowElement.remove();
+    }
 }
 
 function showAddForm(prefillProject = '') {

@@ -411,3 +411,50 @@ h1 {
 
 /* Icons */
 svg { width: 20px; height: 20px; stroke-width: 2; }
+
+/* Mobile Responsiveness */
+@media (max-width: 600px) {
+    body {
+        padding: 20px 10px;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .glass-panel {
+        padding: 15px;
+        border-radius: 16px;
+    }
+
+    .main-heading-input {
+        font-size: 1.2rem;
+    }
+
+    .task-item {
+        padding: 10px;
+        flex-wrap: wrap;
+    }
+
+    .task-controls {
+        margin-top: 10px;
+        width: 100%;
+        justify-content: flex-end;
+    }
+    
+    .task-input {
+        width: 100%;
+        margin-right: 0;
+    }
+    
+    /* Ensure inline add controls are visible */
+    .task-item .task-controls {
+        opacity: 1;
+    }
+}
