@@ -88,7 +88,7 @@ function render() {
         panel.className = 'glass-panel';
         
         // Calculate Progress
-        const total = project.tasks.filter(t => t.status !== 'cancelled').length;
+        const total = project.tasks.length; // Include cancelled in total
         const done = project.tasks.filter(t => t.status === 'done').length;
         const percent = total === 0 ? 0 : Math.round((done / total) * 100);
 
@@ -107,6 +107,7 @@ function render() {
         // Task List
         const taskList = document.createElement('div');
         taskList.className = 'task-list';
+        taskList.id = `task-list-${pIndex}`; // Add ID for easy appending
 
         project.tasks.forEach((task, tIndex) => {
             const isRunning = !!timers[task.id];
@@ -147,8 +148,9 @@ function render() {
         const addTaskBtn = document.createElement('div');
         addTaskBtn.style.marginTop = '15px';
         addTaskBtn.style.textAlign = 'center';
+        // Changed to showInlineAddTask
         addTaskBtn.innerHTML = `
-            <button class="btn" style="width:100%; border-radius: 12px; background: rgba(0,0,0,0.03);" onclick="showAddForm('${project.title.replace(/'/g, "\\'")}')">
+            <button class="btn" style="width:100%; border-radius: 12px; background: rgba(0,0,0,0.03);" onclick="showInlineAddTask(${pIndex})">
                 ${ICONS.plus} <span style="margin-left:8px; font-size:0.9rem;">Add Sub Task</span>
             </button>
         `;
@@ -161,6 +163,48 @@ function render() {
 }
 
 // Inline Add Form Logic
+function showInlineAddTask(pIndex) {
+    const taskList = document.getElementById(`task-list-${pIndex}`);
+    
+    // Create a temporary input row
+    const tempRow = document.createElement('div');
+    tempRow.className = 'task-item';
+    tempRow.style.borderLeft = '3px solid var(--accent-blue)';
+    tempRow.innerHTML = `
+        <div class="status-indicator"></div>
+        <input type="text" class="task-input" placeholder="Type new task and press Enter..." id="inline-input-${pIndex}">
+        <div class="task-controls">
+            <button class="btn" onclick="this.closest('.task-item').remove()">${ICONS.cross}</button>
+        </div>
+    `;
+    taskList.appendChild(tempRow);
+    
+    const input = tempRow.querySelector('input');
+    input.focus();
+    
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const val = input.value.trim();
+            if (val) {
+                appData.projects[pIndex].tasks.push({
+                    id: Date.now() + Math.random(),
+                    title: val,
+                    status: 'pending',
+                    timeSpent: 0
+                });
+                saveData();
+                render();
+                // Keep adding? User said "add to the list". 
+                // Usually inline add stays open or re-opens. 
+                // Let's re-open it for rapid entry.
+                setTimeout(() => showInlineAddTask(pIndex), 50);
+            }
+        }
+    });
+    
+    // Optional: Save on blur? Maybe not, might be annoying if just clicking away.
+}
+
 function showAddForm(prefillProject = '') {
     const form = document.getElementById('add-form-container');
     const btn = document.getElementById('btn-show-add');
@@ -222,9 +266,23 @@ function addSubTaskInput() {
     input.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
-            // If empty and not the only one, maybe focus submit?
-            // For now just let them tab or click add
-            submitNewEntry();
+            // Move to next input or create new one
+            const nextInput = this.nextElementSibling; // This might be null if structure is different
+            // Actually structure is div > input. So next sibling of input is null.
+            // We need to find the next input in the container.
+            
+            const allInputs = Array.from(container.querySelectorAll('input'));
+            const index = allInputs.indexOf(this);
+            
+            if (index < allInputs.length - 1) {
+                allInputs[index + 1].focus();
+            } else {
+                // Last one, create new
+                addSubTaskInput();
+                // Focus the new one (it's added async? no sync)
+                const newInputs = container.querySelectorAll('input');
+                newInputs[newInputs.length - 1].focus();
+            }
         }
     });
 
@@ -414,13 +472,26 @@ function openReport() {
             if (t.status === 'done') completedTasks++;
             totalTime += t.timeSpent;
             
-            const icon = t.status === 'done' ? '✓' : t.status === 'overdue' ? '!' : '•';
-            const color = t.status === 'done' ? '#34c759' : t.status === 'overdue' ? '#ff3b30' : '#999';
+            // Colors: Done=Green, In-Progress=Yellow, Cancelled/Overdue=Red, Pending=Grey
+            const isRunning = !!timers[t.id];
+            let color = '#999'; // Default pending
+            let icon = '•';
+
+            if (t.status === 'done') {
+                color = '#34c759'; // Green
+                icon = '✓';
+            } else if (t.status === 'in-progress' || isRunning) {
+                color = '#ffcc00'; // Yellow
+                icon = '▶';
+            } else if (t.status === 'cancelled' || t.status === 'overdue') {
+                color = '#ff3b30'; // Red
+                icon = '✕';
+            }
             
             listHtml += `
                 <div style="display:flex; justify-content:space-between; font-size:0.9rem; padding: 4px 0; border-bottom: 1px solid rgba(0,0,0,0.05);">
-                    <span style="color:${color}; margin-right:8px;">${icon}</span>
-                    <span style="flex-grow:1; color: #333;">${t.title}</span>
+                    <span style="color:${color}; margin-right:8px; font-weight:bold;">${icon}</span>
+                    <span style="flex-grow:1; color: #333; ${t.status === 'cancelled' ? 'text-decoration:line-through; opacity:0.6;' : ''}">${t.title}</span>
                     <span style="font-family:monospace; color:#666;">${formatTime(t.timeSpent)}</span>
                 </div>
             `;
