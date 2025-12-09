@@ -24,6 +24,9 @@
                 <div class="date-badge" id="current-date">Loading...</div>
             </div>
             <div style="display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="confirmDeleteAll()">
+                    Delete All
+                </button>
                 <button class="btn btn-primary" onclick="openReport()">
                     Daily Report
                 </button>
@@ -95,6 +98,18 @@
 
             <div style="display:flex; gap:10px; margin-top:20px;">
                 <button class="btn-primary" style="width:100%" onclick="copyReportImage()">Copy Image to Clipboard</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal-card" style="max-width: 400px; text-align: center;">
+            <h3 id="confirm-title" style="margin-top: 0;">Are you sure?</h3>
+            <p id="confirm-message" style="color: #666; margin-bottom: 25px;">This action cannot be undone.</p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button id="confirm-yes-btn" class="btn btn-primary" style="background: var(--status-red); flex: 1;" onclick="executeDelete()">Delete</button>
+                <button class="btn" style="background: #f5f5f7; flex: 1;" onclick="closeConfirmModal()">Cancel</button>
             </div>
         </div>
     </div>

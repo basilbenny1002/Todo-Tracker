@@ -5,6 +5,7 @@ let appData = {
 };
 
 let timers = {}; // Map of taskId -> intervalId
+let pendingDeleteAction = null; // For confirmation modal
 
 // Icons (SVG strings for reuse)
 const ICONS = {
@@ -354,12 +355,48 @@ function updateProjectTitle(index, value) {
     saveData();
 }
 
-function deleteProject(index) {
-    if (confirm("Delete this entire project?")) {
-        appData.projects.splice(index, 1);
-        saveData();
-        render();
+// Modal Logic
+function showConfirmModal(title, message, action) {
+    document.getElementById('confirm-title').innerText = title;
+    document.getElementById('confirm-message').innerText = message;
+    pendingDeleteAction = action;
+    document.getElementById('confirm-modal').classList.add('active');
+}
+
+function closeConfirmModal() {
+    document.getElementById('confirm-modal').classList.remove('active');
+    pendingDeleteAction = null;
+}
+
+function executeDelete() {
+    if (pendingDeleteAction) {
+        pendingDeleteAction();
+        closeConfirmModal();
     }
+}
+
+function confirmDeleteAll() {
+    showConfirmModal(
+        'Delete All Tasks?',
+        'This will remove ALL projects and tasks. This action cannot be undone.',
+        () => {
+            appData.projects = [];
+            saveData();
+            render();
+        }
+    );
+}
+
+function deleteProject(index) {
+    showConfirmModal(
+        'Delete Project?',
+        `Are you sure you want to delete "${appData.projects[index].title}"?`,
+        () => {
+            appData.projects.splice(index, 1);
+            saveData();
+            render();
+        }
+    );
 }
 
 function updateTaskTitle(pIndex, tIndex, value) {
@@ -369,15 +406,16 @@ function updateTaskTitle(pIndex, tIndex, value) {
 
 function deleteTask(pIndex, tIndex) {
     const task = appData.projects[pIndex].tasks[tIndex];
-    if (timers[task.id]) clearInterval(timers[task.id]);
-    
-    appData.projects[pIndex].tasks.splice(tIndex, 1);
-    
-    // Clean up empty projects if needed? User said "main heading can be left empty" so maybe keep it.
-    // But if it has 0 tasks, it might look weird. Let's keep it.
-    
-    saveData();
-    render();
+    showConfirmModal(
+        'Delete Task?',
+        `Are you sure you want to delete "${task.title || 'this task'}"?`,
+        () => {
+            if (timers[task.id]) clearInterval(timers[task.id]);
+            appData.projects[pIndex].tasks.splice(tIndex, 1);
+            saveData();
+            render();
+        }
+    );
 }
 
 function toggleTaskStatus(pIndex, tIndex) {
