@@ -374,6 +374,12 @@ h1 {
 
 .modal-overlay.active .modal-card { transform: scale(1); }
 
+.modal-card .btn {
+    border-radius: 12px;
+    width: auto;
+    padding: 12px 24px;
+}
+
 .report-preview {
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     padding: 30px;
@@ -403,7 +409,7 @@ h1 {
     background: rgba(255,255,255,0.6);
     padding: 10px;
     border-radius: 8px;
-    text-align: center;
+    text-align: left;
 }
 
 .stat-number { font-size: 1.5rem; font-weight: 800; display: block; }

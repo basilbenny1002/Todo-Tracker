@@ -27,49 +27,16 @@ document.addEventListener('DOMContentLoaded', () => {
 function loadData() {
     const stored = localStorage.getItem('glassTodoData_v3');
     if (stored) {
-        const parsed = JSON.parse(stored);
-        // Day Rollover Check
-        if (parsed.date !== new Date().toDateString()) {
-            handleRollover(parsed);
-        } else {
-            appData = parsed;
-        }
+        appData = JSON.parse(stored);
     } else {
         // Default State
         appData.projects = [];
+        appData.date = new Date().toDateString();
     }
 }
 
 function saveData() {
     localStorage.setItem('glassTodoData_v3', JSON.stringify(appData));
-}
-
-function handleRollover(oldData) {
-    const today = new Date().toDateString();
-    const overdueProjects = [];
-
-    oldData.projects.forEach(p => {
-        const pending = p.tasks.filter(t => t.status !== 'done' && t.status !== 'cancelled');
-        if (pending.length > 0) {
-            // Mark overdue
-            pending.forEach(t => t.status = 'overdue');
-            overdueProjects.push({
-                id: Date.now() + Math.random(),
-                title: p.title || "Untitled Project",
-                tasks: pending
-            });
-        }
-    });
-
-    appData = {
-        date: today,
-        projects: overdueProjects.length > 0 ? overdueProjects : []
-    };
-    
-    if (overdueProjects.length > 0) {
-        alert(`Welcome back! Unfinished tasks from ${oldData.date} have been moved to today.`);
-    }
-    saveData();
 }
 
 // Rendering
@@ -381,6 +348,7 @@ function confirmDeleteAll() {
         'This will remove ALL projects and tasks. This action cannot be undone.',
         () => {
             appData.projects = [];
+            appData.date = new Date().toDateString();
             saveData();
             render();
         }
@@ -393,6 +361,9 @@ function deleteProject(index) {
         `Are you sure you want to delete "${appData.projects[index].title}"?`,
         () => {
             appData.projects.splice(index, 1);
+            if (appData.projects.length === 0) {
+                appData.date = new Date().toDateString();
+            }
             saveData();
             render();
         }
