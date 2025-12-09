@@ -169,7 +169,7 @@ function showInlineAddTask(pIndex) {
     // Create a temporary input row
     const tempRow = document.createElement('div');
     tempRow.className = 'task-item';
-    tempRow.style.borderLeft = '3px solid var(--accent-blue)';
+    // Removed borderLeft as per user request
     tempRow.innerHTML = `
         <div class="status-indicator"></div>
         <input type="text" class="task-input" placeholder="Type new task and press Enter..." id="inline-input-${pIndex}">
