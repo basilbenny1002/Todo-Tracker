@@ -612,7 +612,7 @@ function copyReportImage() {
 
         html2canvas(clone, {
             backgroundColor: null, // Transparent or inherit
-            scale: 2, // Retina quality
+            scale: 3, // High resolution
             logging: false,
             useCORS: true
         }).then(canvas => {
