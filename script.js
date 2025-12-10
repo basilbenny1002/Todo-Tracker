@@ -504,10 +504,10 @@ function openReport() {
             }
             
             listHtml += `
-                <div style="display:flex; justify-content:space-between; font-size:0.9rem; padding: 4px 0; border-bottom: 1px solid rgba(0,0,0,0.05);">
-                    <span style="color:${color}; margin-right:8px; font-weight:bold;">${icon}</span>
-                    <span style="flex-grow:1; color: #333; ${t.status === 'cancelled' ? 'text-decoration:line-through; opacity:0.6;' : ''}">${t.title}</span>
-                    <span style="font-family:monospace; color:#666;">${formatTime(t.timeSpent)}</span>
+                <div style="display:flex; align-items: flex-start; font-size:0.9rem; padding: 4px 0; border-bottom: 1px solid rgba(0,0,0,0.05);">
+                    <span style="color:${color}; margin-right:8px; font-weight:bold; min-width: 15px;">${icon}</span>
+                    <span style="flex-grow:1; color: #333; margin-right: 10px; word-break: break-word; text-align: left; ${t.status === 'cancelled' ? 'text-decoration:line-through; opacity:0.6;' : ''}">${t.title}</span>
+                    <span style="font-family:monospace; color:#666; white-space: nowrap; min-width: 70px; text-align: right;">${formatTime(t.timeSpent)}</span>
                 </div>
             `;
         });
@@ -529,14 +529,32 @@ function closeReport() {
 }
 
 function copyReportImage() {
-    const element = document.getElementById('report-preview-content');
+    const originalElement = document.getElementById('report-preview-content');
     
     // Use html2canvas
     if (typeof html2canvas !== 'undefined') {
-        html2canvas(element, {
+        // Clone the element to avoid modifying the visible one
+        const clone = originalElement.cloneNode(true);
+        
+        // Style the clone to ensure full capture
+        clone.style.position = 'absolute';
+        clone.style.top = '-9999px';
+        clone.style.left = '-9999px';
+        clone.style.width = '500px'; // Fixed width for consistency
+        clone.style.height = 'auto';
+        clone.style.overflow = 'visible'; // Ensure no scrollbars
+        clone.style.background = 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'; // Ensure background is present
+        
+        document.body.appendChild(clone);
+
+        html2canvas(clone, {
             backgroundColor: null, // Transparent or inherit
-            scale: 2 // Retina quality
+            scale: 2, // Retina quality
+            logging: false,
+            useCORS: true
         }).then(canvas => {
+            document.body.removeChild(clone); // Clean up
+            
             canvas.toBlob(blob => {
                 navigator.clipboard.write([
                     new ClipboardItem({ 'image/png': blob })
@@ -547,6 +565,10 @@ function copyReportImage() {
                     alert('Failed to copy image. Browser might not support it.');
                 });
             });
+        }).catch(err => {
+            document.body.removeChild(clone);
+            console.error(err);
+            alert('Error generating image.');
         });
     } else {
         alert("Library loading... please wait or check internet connection.");
