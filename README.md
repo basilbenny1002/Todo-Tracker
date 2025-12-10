@@ -6,4 +6,4 @@ The architecture is intentionally simple, storing all data in your browser's Loc
 
 This tool was originally created for my journal on the Study Together Discord server (https://discord.gg/study).
 
-You can view the live version at: https://[your-username].github.io/todo-tracker/
+You can view the live version at: https://basilbenny1002.github.io/todo-tracker/
