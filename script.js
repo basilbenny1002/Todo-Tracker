@@ -28,6 +28,23 @@ function loadData() {
     const stored = localStorage.getItem('glassTodoData_v3');
     if (stored) {
         appData = JSON.parse(stored);
+        
+        // Restore active timers
+        const now = Date.now();
+        appData.projects.forEach(p => {
+            p.tasks.forEach(t => {
+                if (t.isActive && t.lastStartTime) {
+                    // Calculate elapsed time while closed
+                    const elapsedSeconds = Math.floor((now - t.lastStartTime) / 1000);
+                    if (elapsedSeconds > 0) {
+                        t.timeSpent += elapsedSeconds;
+                    }
+                    // Reset start time to now for the new session
+                    t.lastStartTime = now;
+                    runTimer(t);
+                }
+            });
+        });
     } else {
         // Default State
         appData.projects = [];
@@ -167,7 +184,9 @@ function submitInlineTask(pIndex, rowElement) {
             id: Date.now() + Math.random(),
             title: val,
             status: 'pending',
-            timeSpent: 0
+            timeSpent: 0,
+            isActive: false,
+            lastStartTime: null
         });
         saveData();
         render();
@@ -278,7 +297,9 @@ function submitNewEntry() {
                 id: Date.now() + Math.random(),
                 title: val,
                 status: 'pending',
-                timeSpent: 0
+                timeSpent: 0,
+                isActive: false,
+                lastStartTime: null
             });
         }
     });
@@ -305,7 +326,9 @@ function submitNewEntry() {
             id: Date.now() + Math.random(),
             title: "",
             status: 'pending',
-            timeSpent: 0
+            timeSpent: 0,
+            isActive: false,
+            lastStartTime: null
         });
     }
 
@@ -347,6 +370,12 @@ function confirmDeleteAll() {
         'Delete All Tasks?',
         'This will remove ALL projects and tasks. This action cannot be undone.',
         () => {
+            // Stop all timers
+            Object.keys(timers).forEach(tid => {
+                clearInterval(timers[tid]);
+                delete timers[tid];
+            });
+
             appData.projects = [];
             appData.date = new Date().toDateString();
             saveData();
@@ -360,6 +389,14 @@ function deleteProject(index) {
         'Delete Project?',
         `Are you sure you want to delete "${appData.projects[index].title}"?`,
         () => {
+            // Stop any active timers in this project
+            appData.projects[index].tasks.forEach(t => {
+                if (timers[t.id]) {
+                    clearInterval(timers[t.id]);
+                    delete timers[t.id];
+                }
+            });
+
             appData.projects.splice(index, 1);
             if (appData.projects.length === 0) {
                 appData.date = new Date().toDateString();
@@ -407,22 +444,42 @@ function startTask(pIndex, tIndex) {
     const task = appData.projects[pIndex].tasks[tIndex];
     
     // Stop all other timers (Single focus mode)
-    Object.keys(timers).forEach(tid => {
-        clearInterval(timers[tid]);
-        delete timers[tid];
+    // We also need to update their state in appData so they don't resume on reload
+    appData.projects.forEach(p => {
+        p.tasks.forEach(t => {
+            if (t.id !== task.id && t.isActive) {
+                t.isActive = false;
+                t.lastStartTime = null;
+                if (timers[t.id]) {
+                    clearInterval(timers[t.id]);
+                    delete timers[t.id];
+                }
+            }
+        });
     });
 
     // Update status
     task.status = 'in-progress';
+    task.isActive = true;
+    task.lastStartTime = Date.now();
+    
     saveData();
     render(); // Re-render to update icons
 
-    // Start interval
+    runTimer(task);
+}
+
+function runTimer(task) {
+    if (timers[task.id]) clearInterval(timers[task.id]);
+    
     timers[task.id] = setInterval(() => {
         task.timeSpent++;
         // Update DOM directly for performance
         const badge = document.getElementById(`timer-${task.id}`);
         if (badge) badge.innerText = formatTime(task.timeSpent);
+        
+        // Optional: Save occasionally to prevent huge drift if crash? 
+        // But for now, we rely on lastStartTime for restoration.
     }, 1000);
 }
 
@@ -432,6 +489,8 @@ function pauseTask(pIndex, tIndex) {
         clearInterval(timers[task.id]);
         delete timers[task.id];
     }
+    task.isActive = false;
+    task.lastStartTime = null;
     saveData();
     render();
 }
@@ -442,6 +501,8 @@ function stopTask(pIndex, tIndex) {
         clearInterval(timers[task.id]);
         delete timers[task.id];
     }
+    task.isActive = false;
+    task.lastStartTime = null;
     task.status = 'done';
     saveData();
     render();
@@ -453,6 +514,8 @@ function cancelTask(pIndex, tIndex) {
         clearInterval(timers[task.id]);
         delete timers[task.id];
     }
+    task.isActive = false;
+    task.lastStartTime = null;
     task.status = 'cancelled';
     saveData();
     render();
