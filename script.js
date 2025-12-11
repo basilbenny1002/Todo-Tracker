@@ -34,13 +34,14 @@ function loadData() {
         appData.projects.forEach(p => {
             p.tasks.forEach(t => {
                 if (t.isActive && t.lastStartTime) {
-                    // Calculate elapsed time while closed
-                    const elapsedSeconds = Math.floor((now - t.lastStartTime) / 1000);
-                    if (elapsedSeconds > 0) {
-                        t.timeSpent += elapsedSeconds;
+                    // If lastTimeSpent is missing (legacy data), assume current timeSpent is the baseline
+                    if (t.lastTimeSpent === undefined) {
+                        t.lastTimeSpent = t.timeSpent;
                     }
-                    // Reset start time to now for the new session
-                    t.lastStartTime = now;
+                    
+                    // We don't need to manually add elapsed time here anymore
+                    // because runTimer will calculate it from lastStartTime
+                    
                     runTimer(t);
                 }
             });
@@ -107,10 +108,11 @@ function render() {
 
             item.innerHTML = `
                 <div class="status-indicator ${statusClass}" onclick="toggleTaskStatus(${pIndex}, ${tIndex})"></div>
-                <input type="text" class="task-input ${task.status === 'done' || task.status === 'cancelled' ? 'done' : ''}" 
+                <textarea class="task-input ${task.status === 'done' || task.status === 'cancelled' ? 'done' : ''}" 
                     placeholder="Sub task..." 
-                    value="${task.title}" 
-                    onchange="updateTaskTitle(${pIndex}, ${tIndex}, this.value)">
+                    rows="1"
+                    oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"
+                    onchange="updateTaskTitle(${pIndex}, ${tIndex}, this.value)">${task.title}</textarea>
                 
                 <span class="timer-badge" id="timer-${task.id}">${formatTime(task.timeSpent)}</span>
                 
@@ -157,7 +159,7 @@ function showInlineAddTask(pIndex) {
     // Removed borderLeft as per user request
     tempRow.innerHTML = `
         <div class="status-indicator"></div>
-        <input type="text" class="task-input" placeholder="Type new task..." id="inline-input-${pIndex}">
+        <textarea class="task-input" placeholder="Type new task..." id="inline-input-${pIndex}" rows="1" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"></textarea>
         <div class="task-controls">
             <button class="btn" onclick="submitInlineTask(${pIndex}, this.closest('.task-item'))">${ICONS.check}</button>
             <button class="btn" onclick="this.closest('.task-item').remove()">${ICONS.cross}</button>
@@ -165,18 +167,19 @@ function showInlineAddTask(pIndex) {
     `;
     taskList.appendChild(tempRow);
     
-    const input = tempRow.querySelector('input');
+    const input = tempRow.querySelector('textarea');
     input.focus();
     
     input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault(); // Prevent newline
             submitInlineTask(pIndex, tempRow);
         }
     });
 }
 
 function submitInlineTask(pIndex, rowElement) {
-    const input = rowElement.querySelector('input');
+    const input = rowElement.querySelector('textarea');
     const val = input.value.trim();
     
     if (val) {
@@ -462,6 +465,7 @@ function startTask(pIndex, tIndex) {
     task.status = 'in-progress';
     task.isActive = true;
     task.lastStartTime = Date.now();
+    task.lastTimeSpent = task.timeSpent; // Store baseline
     
     saveData();
     render(); // Re-render to update icons
@@ -472,14 +476,17 @@ function startTask(pIndex, tIndex) {
 function runTimer(task) {
     if (timers[task.id]) clearInterval(timers[task.id]);
     
+    // Ensure lastTimeSpent is set (for restored tasks)
+    if (task.lastTimeSpent === undefined) task.lastTimeSpent = task.timeSpent;
+
     timers[task.id] = setInterval(() => {
-        task.timeSpent++;
+        const now = Date.now();
+        const elapsed = Math.floor((now - task.lastStartTime) / 1000);
+        task.timeSpent = task.lastTimeSpent + elapsed;
+        
         // Update DOM directly for performance
         const badge = document.getElementById(`timer-${task.id}`);
         if (badge) badge.innerText = formatTime(task.timeSpent);
-        
-        // Optional: Save occasionally to prevent huge drift if crash? 
-        // But for now, we rely on lastStartTime for restoration.
     }, 1000);
 }
 
@@ -491,6 +498,7 @@ function pauseTask(pIndex, tIndex) {
     }
     task.isActive = false;
     task.lastStartTime = null;
+    // task.timeSpent is already updated by the interval loop
     saveData();
     render();
 }

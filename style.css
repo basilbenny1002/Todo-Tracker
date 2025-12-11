@@ -200,6 +200,11 @@ h1 {
     color: var(--text-primary);
     font-family: var(--font-stack);
     margin-right: 10px;
+    resize: none; /* Disable manual resize */
+    overflow: hidden; /* Hide scrollbar */
+    min-height: 24px;
+    line-height: 1.5;
+    padding: 0; /* Remove padding to align with text */
 }
 
 .task-input.done {
