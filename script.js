@@ -551,7 +551,7 @@ function openReport() {
         if (p.tasks.length === 0) return;
         
         listHtml += `<div style="margin-bottom: 15px;">
-            <div style="font-weight:bold; margin-bottom:5px; color:#444;">${p.title || 'Untitled Project'}</div>`;
+            <div style="font-weight:bold; margin-bottom:5px; color:#444; font-size: 1.3rem;">${p.title || 'Untitled Project'}</div>`;
         
         p.tasks.forEach(t => {
             totalTasks++;
@@ -575,7 +575,7 @@ function openReport() {
             }
             
             listHtml += `
-                <div style="display:flex; align-items: flex-start; font-size:0.9rem; padding: 4px 0; border-bottom: 1px solid rgba(0,0,0,0.05);">
+                <div style="display:flex; align-items: flex-start; font-size:1.1rem; padding: 4px 0; border-bottom: 1px solid rgba(0,0,0,0.05);">
                     <span style="color:${color}; margin-right:8px; font-weight:bold; min-width: 15px;">${icon}</span>
                     <span style="flex-grow:1; color: #333; margin-right: 10px; word-break: break-word; text-align: left; ${t.status === 'cancelled' ? 'text-decoration:line-through; opacity:0.6;' : ''}">${t.title}</span>
                     <span style="font-family:monospace; color:#666; white-space: nowrap; min-width: 70px; text-align: right;">${formatTime(t.timeSpent)}</span>
@@ -587,8 +587,7 @@ function openReport() {
     });
 
     document.getElementById('rep-date').innerText = appData.date;
-    document.getElementById('rep-total').innerText = totalTasks;
-    document.getElementById('rep-completed').innerText = completedTasks;
+    document.getElementById('rep-completed-total').innerText = `${completedTasks}/${totalTasks}`;
     document.getElementById('rep-time').innerText = formatTime(totalTime);
     document.getElementById('rep-list').innerHTML = listHtml;
 
@@ -613,47 +612,10 @@ function copyReportImage() {
         clone.style.left = '-9999px';
         clone.style.width = '800px'; // Wider width
         clone.style.padding = '40px'; // More padding
-        // clone.style.fontSize = '1.2rem'; // Removed global scaling to control elements individually
         clone.style.height = 'auto';
         clone.style.overflow = 'visible'; // Ensure no scrollbars
         clone.style.background = 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'; // Ensure background is present
         
-        // --- Modify Stats Section (Image Only) ---
-        const total = clone.querySelector('#rep-total').innerText;
-        const completed = clone.querySelector('#rep-completed').innerText;
-        const time = clone.querySelector('#rep-time').innerText;
-        const statsGrid = clone.querySelector('.report-stats-grid');
-        
-        // Compact Stats Layout
-        statsGrid.style.display = 'flex';
-        statsGrid.style.gap = '15px';
-        statsGrid.style.marginBottom = '20px';
-        statsGrid.innerHTML = `
-            <div class="stat-item" style="flex: 1; padding: 8px; text-align: center; background: rgba(255,255,255,0.6); border-radius: 8px;">
-                <span class="stat-number" style="font-size: 1.2rem; font-weight: 800; display: block;">${completed}/${total}</span>
-                <span class="stat-label" style="font-size: 0.7rem; text-transform: uppercase; opacity: 0.7;">Completed</span>
-            </div>
-            <div class="stat-item" style="flex: 1; padding: 8px; text-align: center; background: rgba(255,255,255,0.6); border-radius: 8px;">
-                <span class="stat-number" style="font-size: 1.2rem; font-weight: 800; display: block;">${time}</span>
-                <span class="stat-label" style="font-size: 0.7rem; text-transform: uppercase; opacity: 0.7;">Focus Time</span>
-            </div>
-        `;
-
-        // --- Modify Text Sizes (Image Only) ---
-        // Project Titles
-        const projectTitles = clone.querySelectorAll('#rep-list > div > div:first-child');
-        projectTitles.forEach(el => {
-            el.style.fontSize = '1.3rem'; // Slightly bigger than tasks
-            el.style.marginBottom = '10px';
-        });
-
-        // Task Rows (Sub titles)
-        const taskRows = clone.querySelectorAll('#rep-list > div > div:not(:first-child)');
-        taskRows.forEach(el => {
-            el.style.fontSize = '1.1rem'; // Increased size
-            el.style.padding = '6px 0';
-        });
-
         document.body.appendChild(clone);
 
         html2canvas(clone, {
