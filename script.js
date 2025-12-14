@@ -73,6 +73,24 @@ function render() {
         const panel = document.createElement('div');
         panel.className = 'glass-panel';
         
+        if (project.type === 'note') {
+            panel.innerHTML = `
+                <div class="main-heading-header" style="border-bottom: none; margin-bottom: 10px;">
+                    <input type="text" class="main-heading-input" 
+                        placeholder="Heading (Optional)" 
+                        value="${project.title}" 
+                        onchange="updateProjectTitle(${pIndex}, this.value)">
+                    <button class="btn" onclick="deleteProject(${pIndex})" title="Delete Note">${ICONS.trash}</button>
+                </div>
+                <textarea class="task-input" 
+                    style="width: 100%; min-height: 60px; resize: vertical; overflow: auto; background: rgba(255,255,255,0.3); padding: 10px; border-radius: 8px; font-family: inherit;"
+                    placeholder="Write your note here..."
+                    onchange="updateNoteContent(${pIndex}, this.value)">${project.content || ''}</textarea>
+            `;
+            container.appendChild(panel);
+            return;
+        }
+
         // Calculate Progress
         const total = project.tasks.length; // Include cancelled in total
         const done = project.tasks.filter(t => t.status === 'done').length;
@@ -210,7 +228,7 @@ function showAddForm(prefillProject = '') {
 
     // Populate suggestions
     datalist.innerHTML = '';
-    const uniqueProjects = [...new Set(appData.projects.map(p => p.title).filter(t => t))];
+    const uniqueProjects = [...new Set(appData.projects.filter(p => p.type !== 'note').map(p => p.title).filter(t => t))];
     uniqueProjects.forEach(title => {
         const option = document.createElement('option');
         option.value = title;
@@ -227,6 +245,7 @@ function showAddForm(prefillProject = '') {
 
     form.style.display = 'block';
     btn.style.display = 'none';
+    document.getElementById('btn-show-note').style.display = 'none';
     
     if (prefillProject) {
         // Focus first subtask if project is prefilled
@@ -240,6 +259,46 @@ function showAddForm(prefillProject = '') {
 function cancelAddEntry() {
     document.getElementById('add-form-container').style.display = 'none';
     document.getElementById('btn-show-add').style.display = 'block';
+    document.getElementById('btn-show-note').style.display = 'block';
+}
+
+function showNoteForm() {
+    document.getElementById('add-note-container').style.display = 'block';
+    document.getElementById('btn-show-add').style.display = 'none';
+    document.getElementById('btn-show-note').style.display = 'none';
+    document.getElementById('new-note-title').focus();
+}
+
+function cancelAddNote() {
+    document.getElementById('add-note-container').style.display = 'none';
+    document.getElementById('btn-show-add').style.display = 'block';
+    document.getElementById('btn-show-note').style.display = 'block';
+    document.getElementById('new-note-title').value = '';
+    document.getElementById('new-note-content').value = '';
+}
+
+function submitNewNote() {
+    const title = document.getElementById('new-note-title').value.trim();
+    const content = document.getElementById('new-note-content').value.trim();
+    
+    if (!content && !title) return;
+
+    appData.projects.push({
+        id: Date.now(),
+        type: 'note',
+        title: title,
+        content: content,
+        tasks: []
+    });
+
+    saveData();
+    render();
+    cancelAddNote();
+}
+
+function updateNoteContent(index, value) {
+    appData.projects[index].content = value;
+    saveData();
 }
 
 function addSubTaskInput() {
@@ -548,6 +607,14 @@ function openReport() {
     let listHtml = '';
 
     appData.projects.forEach(p => {
+        if (p.type === 'note') {
+             listHtml += `<div style="margin-bottom: 20px; padding: 15px; background: rgba(255,255,255,0.5); border-radius: 12px;">
+                ${p.title ? `<div style="font-weight:bold; margin-bottom:8px; color:#444; font-size: 1.2rem;">${p.title}</div>` : ''}
+                <div style="white-space: pre-wrap; color: #333; font-size: 1rem; line-height: 1.5;">${p.content || ''}</div>
+            </div>`;
+            return;
+        }
+
         if (p.tasks.length === 0) return;
         
         listHtml += `<div style="margin-bottom: 15px;">

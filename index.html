@@ -56,8 +56,26 @@
             </div>
         </div>
 
+        <!-- New Note Form -->
+        <div id="add-note-container" class="add-form-container" style="display:none;">
+            <div class="add-form-row">
+                <input type="text" id="new-note-title" class="add-form-input" placeholder="Heading (Optional)" style="font-weight:bold;">
+            </div>
+            <div class="add-form-row">
+                <textarea id="new-note-content" class="add-form-input" placeholder="Write your note here..." rows="4" style="resize: vertical; font-family: inherit;"></textarea>
+            </div>
+            <div class="add-form-actions">
+                <button class="btn btn-primary" style="background:var(--accent-blue); flex:2;" onclick="submitNewNote()">Add Note</button>
+                <button class="btn" style="background:#f5f5f7; flex:1;" onclick="cancelAddNote()">Cancel</button>
+            </div>
+        </div>
+
         <button id="btn-show-add" class="btn-add-main" onclick="showAddForm()">
             + Add Task / Project
+        </button>
+        
+        <button id="btn-show-note" class="btn-add-main" style="background: #8e8e93; margin-top: 10px;" onclick="showNoteForm()">
+            + Add Note / Thought
         </button>
     </div>
 
