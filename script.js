@@ -114,7 +114,8 @@ function render() {
         taskList.id = `task-list-${pIndex}`; // Add ID for easy appending
 
         project.tasks.forEach((task, tIndex) => {
-            const isRunning = !!timers[task.id];
+            // Use persistent state (isActive) instead of runtime timers for UI
+            const isRunning = task.isActive;
             const statusClass = task.status === 'done' ? 'green' : 
                               (task.status === 'in-progress' || isRunning) ? 'yellow' : 
                               task.status === 'overdue' ? 'red' : 
